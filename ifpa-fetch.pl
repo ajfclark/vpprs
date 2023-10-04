@@ -2,9 +2,16 @@
 
 import httplib2
 from bs4 import BeautifulSoup
+import argparse
+
+parser = argparse.ArgumentParser(description="Script to fetch tournament results and dump a CSV", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("-t", "--tournament")
+args = parser.parse_args()
+config = vars(args)
+print(config)
 
 http = httplib2.Http()
-status, response = http.request('http://www.ifpapinball.com/tournaments/view.php?t=64751')
+status, response = http.request('http://www.ifpapinball.com/tournaments/view.php?t=' + config['tournament'])
 
 soup = BeautifulSoup(response, 'html.parser') 
 
