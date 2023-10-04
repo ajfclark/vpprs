@@ -6,14 +6,20 @@ import argparse
 
 parser = argparse.ArgumentParser(description="Script to fetch tournament results and dump a CSV",
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("-t", "--tournament", required=True)
+group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument("-t", "--tournament")
+group.add_argument("-f", "--file")
 args = parser.parse_args()
 config = vars(args)
 
-http = httplib2.Http()
-status, response = http.request('http://www.ifpapinball.com/tournaments/view.php?t=' + config['tournament'])
+if(config['tournament']):
+	http = httplib2.Http()
+	status, htmlPage = http.request('http://www.ifpapinball.com/tournaments/view.php?t=' + config['tournament'])
+if(config['file']):
+	f = open(config['file'])
+	htmlPage = f.read()
 
-soup = BeautifulSoup(response, 'html.parser') 
+soup = BeautifulSoup(htmlPage, 'html.parser') 
 
 table = soup.find("table", id="tourresults").tbody
 rows = table.find_all("tr")
