@@ -1,11 +1,12 @@
 #!/usr/bin/python3
 
+import httplib2
 from bs4 import BeautifulSoup
 
-f = open('66410.tidy.html')
-contents = f.read()
+http = httplib2.Http()
+status, response = http.request('http://www.ifpapinball.com/tournaments/view.php?t=64751')
 
-soup = BeautifulSoup(contents, 'html.parser') 
+soup = BeautifulSoup(response, 'html.parser') 
 
 table = soup.find("table", id="tourresults").tbody
 rows = table.find_all("tr")
