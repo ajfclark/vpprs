@@ -4,6 +4,13 @@ import httplib2
 from bs4 import BeautifulSoup
 import argparse
 
+
+def vppr(place: float, numPlayers: int) -> float:
+	if(place == 1.0):
+		return 50
+	else:
+		return ((int(numPlayers) - float(place) + 1) / numPlayers)**2 * 45 + 1
+
 parser = argparse.ArgumentParser(description='Script to fetch tournament results and dump a CSV',
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 group = parser.add_mutually_exclusive_group(required=True)
@@ -27,13 +34,15 @@ rows = table.find_all('tr')
 data = []
 for row in rows:
 	cells = row.find_all('td')
-	place = cells[0].contents[0].strip()
+	place = float(cells[0].contents[0].strip())
 	name = cells[1].a.contents[0].strip()
 	data.append({ 'placing': place, 'name': name })
 
-for i in range(len(data)):
+numPlayers = len(data)
+
+for i in range(numPlayers):
 	matches = [ i ]
-	for k in range(i + 1, len(data)):
+	for k in range(i + 1, numPlayers):
 		if(data[i]['placing'] == data[k]['placing']):
 			matches.append(k)
 	if(len(matches) > 1):
@@ -45,4 +54,4 @@ for i in range(len(data)):
 			data[matches[k]]['placing'] = average
 
 for player in data:
-	print(str(player['placing']) + '	' + player['name'])
+	print(str(player['placing']) + '	' + player['name'] + '	' + str(vppr(player['placing'], numPlayers)))
