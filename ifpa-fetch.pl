@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 
+import sys
 import httplib2
 from bs4 import BeautifulSoup
 import argparse
+import psycopg2
 
 def vppr(place: float, numPlayers: int) -> float:
 	if(place == 1.0):
@@ -12,25 +14,28 @@ def vppr(place: float, numPlayers: int) -> float:
 
 parser = argparse.ArgumentParser(description='Script to fetch tournament results and dump a CSV',
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-group = parser.add_mutually_exclusive_group(required=True)
-group.add_argument('-t', '--tournament')
-group.add_argument('-f', '--file')
+parser.add_argument('-i', '--ifpaid', required=True)
+parser.add_argument('-u', '--dbuser', required=True)
+parser.add_argument('-p', '--dbpassword', required=True)
+parser.add_argument('-H', '--dbhost', default='localhost')
+parser.add_argument('-d', '--dbname', default='vppr')
 args = parser.parse_args()
 config = vars(args)
 
-if(config['tournament']):
-	http = httplib2.Http()
-	status, htmlPage = http.request('http://www.ifpapinball.com/tournaments/view.php?t=' + config['tournament'])
-if(config['file']):
-	f = open(config['file'])
-	htmlPage = f.read()
+# Fetch the results from the IFPA site
+http = httplib2.Http()
+status, htmlPage = http.request('http://www.ifpapinball.com/tournaments/view.php?t=' + config['ifpaid'])
+if(int(status['status']) != 200):
+	print(status)
+	sys.exit()
 
+# Parse the result into bs4
 soup = BeautifulSoup(htmlPage, 'html.parser') 
 
 # Find the event name
 title = soup.find('div', id='inner').find('table').tr.td.h1.contents[0].strip()
 
-# Find the data
+# Find the date
 date = soup.find('select', id='select_date').option['value']
 
 # Find the results table
@@ -64,6 +69,7 @@ while i < numPlayers:
 	i = i + len(matches)
 
 # Connect to database
+conn = psycopg2.connect(database=config['dbname'], host=config['dbhost'], user=config['dbuser'], password=config['dbpassword'])
 
 # Add event to event table
 print(title)
