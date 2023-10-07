@@ -40,7 +40,8 @@ for row in rows:
 
 numPlayers = len(data)
 
-for i in range(numPlayers):
+i = 0
+while i < numPlayers:
 	matches = [ i ]
 	for k in range(i + 1, numPlayers):
 		if(data[i]['placing'] == data[k]['placing']):
@@ -52,6 +53,7 @@ for i in range(numPlayers):
 		average = total / len(matches)
 		for k in range(len(matches)):
 			data[matches[k]]['placing'] = average
+	i = i + len(matches)
 
 for player in data:
 	print(str(player['placing']) + '	' + player['name'] + '	' + str(vppr(player['placing'], numPlayers)))
