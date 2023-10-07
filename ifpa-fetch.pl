@@ -4,7 +4,6 @@ import httplib2
 from bs4 import BeautifulSoup
 import argparse
 
-
 def vppr(place: float, numPlayers: int) -> float:
 	if(place == 1.0):
 		return 50
@@ -16,7 +15,6 @@ parser = argparse.ArgumentParser(description='Script to fetch tournament results
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument('-t', '--tournament')
 group.add_argument('-f', '--file')
-parser.add_argument('-i', '--eventid', required=True)
 args = parser.parse_args()
 config = vars(args)
 
@@ -26,14 +24,17 @@ if(config['tournament']):
 if(config['file']):
 	f = open(config['file'])
 	htmlPage = f.read()
-if(config['eventid']):
-	eventid = config['eventid']
 
 soup = BeautifulSoup(htmlPage, 'html.parser') 
 
+# Find the event name
+title = soup.find('div', id='inner').find('table').tr.td.h1.contents[0].strip()
+
+# Find the results table
 table = soup.find('table', id='tourresults').tbody
 rows = table.find_all('tr')
 
+# Pull the results into a list
 data = []
 for row in rows:
 	cells = row.find_all('td')
@@ -41,9 +42,10 @@ for row in rows:
 	name = cells[1].a.contents[0].strip()
 	data.append({ 'placing': place, 'name': name })
 
-numPlayers = len(data)
 
+# Find entries where multiple players have the same placing, replace with the average of the order in the list
 i = 0
+numPlayers = len(data)
 while i < numPlayers:
 	matches = [ i ]
 	for k in range(i + 1, numPlayers):
@@ -58,5 +60,12 @@ while i < numPlayers:
 			data[matches[k]]['placing'] = average
 	i = i + len(matches)
 
+# Connect to database
+
+# Add event to event table
+print(title)
+eventid = 1
+
+# Add results to result table
 for player in data:
-	print(eventid + "\t" + str(player['placing']) + "\t" + player['name'] + "\t" + str(vppr(player['placing'], numPlayers)))
+	print(str(eventid) + "\t" + str(player['placing']) + "\t" + player['name'] + "\t" + str(vppr(player['placing'], numPlayers)))
