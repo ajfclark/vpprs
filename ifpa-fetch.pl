@@ -30,6 +30,9 @@ soup = BeautifulSoup(htmlPage, 'html.parser')
 # Find the event name
 title = soup.find('div', id='inner').find('table').tr.td.h1.contents[0].strip()
 
+# Find the data
+date = soup.find('select', id='select_date').option['value']
+
 # Find the results table
 table = soup.find('table', id='tourresults').tbody
 rows = table.find_all('tr')
