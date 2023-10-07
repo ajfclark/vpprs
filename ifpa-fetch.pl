@@ -16,6 +16,7 @@ parser = argparse.ArgumentParser(description='Script to fetch tournament results
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument('-t', '--tournament')
 group.add_argument('-f', '--file')
+parser.add_argument('-i', '--eventid', required=True)
 args = parser.parse_args()
 config = vars(args)
 
@@ -25,6 +26,8 @@ if(config['tournament']):
 if(config['file']):
 	f = open(config['file'])
 	htmlPage = f.read()
+if(config['eventid']):
+	eventid = config['eventid']
 
 soup = BeautifulSoup(htmlPage, 'html.parser') 
 
@@ -56,4 +59,4 @@ while i < numPlayers:
 	i = i + len(matches)
 
 for player in data:
-	print(str(player['placing']) + '	' + player['name'] + '	' + str(vppr(player['placing'], numPlayers)))
+	print(eventid + "\t" + str(player['placing']) + "\t" + player['name'] + "\t" + str(vppr(player['placing'], numPlayers)))
