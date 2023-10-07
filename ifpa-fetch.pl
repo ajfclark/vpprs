@@ -8,9 +8,9 @@ import psycopg2
 
 def vppr(place: float, numPlayers: int) -> float:
 	if(place == 1.0):
-		return 50
+		return str(50)
 	else:
-		return ((int(numPlayers) - float(place) + 1) / numPlayers)**2 * 45 + 1
+		return str(((int(numPlayers) - float(place) + 1) / numPlayers)**2 * 45 + 1)
 
 parser = argparse.ArgumentParser(description='Script to fetch tournament results and dump a CSV',
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -70,11 +70,18 @@ while i < numPlayers:
 
 # Connect to database
 conn = psycopg2.connect(database=config['dbname'], host=config['dbhost'], user=config['dbuser'], password=config['dbpassword'])
+cursor = conn.cursor()
 
 # Add event to event table
-print(title)
-eventid = 1
+cursor.execute("INSERT INTO event(date, name, ifpa_id) VALUES (%s, %s, %s) RETURNING id;", (date, title, config['ifpaid']))
+eventid = str(cursor.fetchone()[0])
 
 # Add results to result table
+sqlData = []
 for player in data:
-	print(str(eventid) + "\t" + str(player['placing']) + "\t" + player['name'] + "\t" + str(vppr(player['placing'], numPlayers)))
+	sqlData.append([eventid,str(player['placing']),player['name'], vppr(player['placing'], numPlayers)])
+cursor.executemany("INSERT INTO result(event_id, place, player, vppr) VALUES (%s, %s, %s, %s);", sqlData)
+
+conn.commit()
+cursor.close()
+conn.close()
