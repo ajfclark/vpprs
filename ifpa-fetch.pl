@@ -36,7 +36,7 @@ soup = BeautifulSoup(htmlPage, 'html.parser')
 title = soup.find('div', id='inner').find('table').tr.td.h1.contents[0].strip()
 
 # Find the date
-date = soup.find('select', id='select_date').option['value']
+date = soup.find('select', id='select_date').find('option', selected=True)['value']
 
 # Find the results table
 table = soup.find('table', id='tourresults').tbody
@@ -49,7 +49,6 @@ for row in rows:
 	place = float(cells[0].contents[0].strip())
 	name = cells[1].a.contents[0].strip()
 	data.append({ 'placing': place, 'name': name })
-
 
 # Find entries where multiple players have the same placing, replace with the average of the order in the list
 i = 0
@@ -73,6 +72,7 @@ conn = psycopg2.connect(database=config['dbname'], host=config['dbhost'], user=c
 cursor = conn.cursor()
 
 # Add event to event table
+print(date + ":" + title)
 cursor.execute("INSERT INTO event(date, name, ifpa_id) VALUES (%s, %s, %s) RETURNING id;", (date, title, config['ifpaid']))
 eventid = str(cursor.fetchone()[0])
 
