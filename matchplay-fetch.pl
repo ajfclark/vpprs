@@ -6,6 +6,7 @@ import argparse
 import psycopg2
 import requests
 import csv
+import json
 
 def vppr(place: float, numPlayers: int) -> float:
 	if(place == 1.0):
@@ -32,33 +33,28 @@ data = response.json()['data']
 title = data['name']
 
 # Find the date
-date = data['startLocal']
-print(title)
-print(date)
+date = data['startLocal'][0:10]
 
 # Get player list
 apiurl = "https://next.matchplay.events/api/tournaments/" + config['matchplayid'] + "/players/csv"
 response = requests.get(apiurl)
 lines = list(csv.reader(response.text.splitlines()))
 player = {}
-for line in lines[1:]:
+for line in lines:
 	player[line[0]] = line[1]
-print(player)
-sys.exit()
+player['244600']='David Leeds'
 
-#
-soup = BeautifulSoup(htmlPage, 'html.parser') 
-
-# Find the results table
-table = soup.find('table', id='tourresults').tbody
-rows = table.find_all('tr')
-
-# Pull the results into a list
+# Get the tournament standings
+apiurl = "https://next.matchplay.events/api/tournaments/" + config['matchplayid'] + "/standings"
+response = requests.get(apiurl)
+rows = response.json()
+#print(json.dumps(rows, indent=2))
 data = []
 for row in rows:
-	cells = row.find_all('td')
-	place = float(cells[0].contents[0].strip())
-	name = cells[1].a.contents[0].strip()
+	#print(json.dumps(row, indent=2))
+	place = row['position']
+	playerId = row['playerId']
+	name = player[str(playerId)]
 	data.append({ 'placing': place, 'name': name })
 
 # Find entries where multiple players have the same placing, replace with the average of the order in the list
@@ -84,7 +80,7 @@ cursor = conn.cursor()
 
 # Add event to event table
 print(date + ":" + title)
-cursor.execute("INSERT INTO event(date, name, ifpa_id) VALUES (%s, %s, %s) RETURNING id;", (date, title, config['ifpaid']))
+cursor.execute("INSERT INTO event(date, name, matchplay_q_id) VALUES (%s, %s, %s) RETURNING id;", (date, title, config['matchplayid']))
 eventid = str(cursor.fetchone()[0])
 
 # Add results to result table
