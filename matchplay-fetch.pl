@@ -51,7 +51,6 @@ rows = response.json()
 #print(json.dumps(rows, indent=2))
 data = []
 for row in rows:
-	#print(json.dumps(row, indent=2))
 	place = row['position']
 	playerId = row['playerId']
 	name = player[str(playerId)]
@@ -74,12 +73,16 @@ while i < numPlayers:
 			data[matches[k]]['placing'] = average
 	i = i + len(matches)
 
+# Output data
+print(date + ":" + title)
+for player in data:
+	print(player)
+
 # Connect to database
 conn = psycopg2.connect(database=config['dbname'], host=config['dbhost'], user=config['dbuser'], password=config['dbpassword'])
 cursor = conn.cursor()
 
 # Add event to event table
-print(date + ":" + title)
 cursor.execute("INSERT INTO event(date, name, matchplay_q_id) VALUES (%s, %s, %s) RETURNING id;", (date, title, config['matchplayid']))
 eventid = str(cursor.fetchone()[0])
 
