@@ -79,8 +79,8 @@ eventid = str(cursor.fetchone()[0])
 # Add results to result table
 sqlData = []
 for player in data:
-	sqlData.append([eventid,str(player['placing']),player['name'], vppr(player['placing'], numPlayers)])
-cursor.executemany("INSERT INTO result(event_id, place, player, vppr) VALUES (%s, %s, %s, %s);", sqlData)
+	sqlData.append([eventid,str(player['placing']),player['name']])
+cursor.executemany("INSERT INTO result(event_id, place, player) VALUES (%s, %s, %s);", sqlData)
 
 conn.commit()
 cursor.close()
