@@ -5,6 +5,24 @@ import httplib2
 from bs4 import BeautifulSoup
 import argparse
 import psycopg2
+from configparser import ConfigParser
+
+def readDbConfig(filename='database.ini', section='postgresql'):
+    # create a parser
+    parser = ConfigParser()
+    # read config file
+    parser.read(filename)
+
+    # get section, default to postgresql
+    db = {}
+    if parser.has_section(section):
+        params = parser.items(section)
+        for param in params:
+            db[param[0]] = param[1]
+    else:
+        raise Exception('Section {0} not found in the {1} file'.format(section, filename))
+
+    return db
 
 def vppr(place: float, numPlayers: int) -> float:
 	if(place == 1.0):
@@ -12,19 +30,22 @@ def vppr(place: float, numPlayers: int) -> float:
 	else:
 		return str(((int(numPlayers) - float(place) + 1) / numPlayers)**2 * 45 + 1)
 
-parser = argparse.ArgumentParser(description='Script to fetch tournament results and dump a CSV',
+parser = argparse.ArgumentParser(description='Script to fetch tournament results and insert into the database',
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-i', '--ifpaid', required=True)
-parser.add_argument('-u', '--dbuser', required=True)
-parser.add_argument('-p', '--dbpassword', required=True)
-parser.add_argument('-H', '--dbhost', default='localhost')
-parser.add_argument('-d', '--dbname', default='vppr')
+parser.add_argument('-d', '--debug', action='store_true')
+parser.add_argument('-c', '--dbconfig', default='database.ini')
 args = parser.parse_args()
-config = vars(args)
+params = vars(args)
+
+# Read the DB config
+ifpaId = params['ifpaid']
+debug = params['debug']
+dbConfig = readDbConfig(filename=params['dbconfig'])
 
 # Fetch the results from the IFPA site
 http = httplib2.Http()
-status, htmlPage = http.request('http://www.ifpapinball.com/tournaments/view.php?t=' + config['ifpaid'])
+status, htmlPage = http.request('http://www.ifpapinball.com/tournaments/view.php?t=' + ifpaId)
 if(int(status['status']) != 200):
 	print(status)
 	sys.exit()
@@ -67,21 +88,25 @@ while i < numPlayers:
 			data[matches[k]]['placing'] = average
 	i = i + len(matches)
 
-# Connect to database
-conn = psycopg2.connect(database=config['dbname'], host=config['dbhost'], user=config['dbuser'], password=config['dbpassword'])
-cursor = conn.cursor()
-
 # Add event to event table
 print(date + ":" + title)
-cursor.execute("INSERT INTO event(date, name, ifpa_id) VALUES (%s, %s, %s) RETURNING id;", (date, title, config['ifpaid']))
-eventid = str(cursor.fetchone()[0])
-
-# Add results to result table
-sqlData = []
 for player in data:
-	sqlData.append([eventid,str(player['placing']),player['name']])
-cursor.executemany("INSERT INTO result(event_id, place, player) VALUES (%s, %s, %s);", sqlData)
+	print(player)
 
-conn.commit()
-cursor.close()
-conn.close()
+if (not debug):
+	# Connect to database
+	conn = psycopg2.connect(**dbConfig)
+	cursor = conn.cursor()
+
+	cursor.execute("INSERT INTO event(date, name, ifpa_id) VALUES (%s, %s, %s) RETURNING id;", (date, title, ifpaId))
+	eventId = str(cursor.fetchone()[0])
+
+	# Add results to result table
+	sqlData = []
+	for player in data:
+		sqlData.append([eventId,str(player['placing']),player['name']])
+	cursor.executemany("INSERT INTO result(event_id, place, player) VALUES (%s, %s, %s);", sqlData)
+
+	conn.commit()
+	cursor.close()
+	conn.close()
