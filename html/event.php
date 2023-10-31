@@ -19,7 +19,7 @@ if(isset($_GET['id'])) {
 		printf("<h3>%s: %s</h3>", $row[0], $row[1]);
 	}
 
-	$ret = pg_query($db, "select place, player, vppr(place, players) as vppr  from result r, event_players p where r.event_id = $id and p.id = r.event_id;");
+	$ret = pg_query($db, "select place, player, vppr(place, players) as vppr  from result r, event_players p where r.event_id = $id and p.id = r.event_id order by place, player asc;");
 	if(!$ret) {
 		echo pg_last_error($db);
 		exit;
@@ -33,7 +33,7 @@ if(isset($_GET['id'])) {
 }
 else {
 	print("<h3>Events</h3>");
-	$ret = pg_query($db, "select id, date, name, ifpa_id from event where extract(year from date) = 2023 order by date desc;");
+	$ret = pg_query($db, "select id, date, name, ifpa_id, matchplay_q_id, matchplay_f_id from event where extract(year from date) = 2023 order by date desc;");
 	if(!$ret) {
 		echo pg_last_error($db);
 		exit;
@@ -41,12 +41,22 @@ else {
 
 	print("<table>\n");
 	while($row = pg_fetch_row($ret)) {
-		if($row[3]>0) {
-			printf('<tr><td>%s</td><td><a href="event.php?id=%d">%s</a></td><td><a href="http://ifpapinball.com/tournaments/view.php?t=%d" target="_blank">ifpa</td></tr>', $row[1], $row[0], $row[2], $row[3]);
-		}
-		else {
-			printf('<tr><td>%s</td><td><a href="event.php?id=%d">%s</a></td><td>no ifpa id</td></tr>', $row[1], $row[0], $row[2]);
-		}
+		if($row[3]>0)
+			$ifpa='<a href="http://ifpapinball.com/tournaments/view.php?t=' . $row[3] . '" target="_blank">ifpa</a>';
+		else
+			$ifpa='';
+
+		if($row[4]>0)
+			$mpq='<a href="https://next.matchplay.events/tournaments/' . $row[4] . '" target="_blank">qualifying</a>';
+		else
+			$mpq='';
+
+		if($row[5]>0)
+			$mpf='<a href="https://next.matchplay.events/tournaments/' . $row[5] . '" target="_blank">finals</a>';
+		else
+			$mpf='';
+
+		printf("<tr><td>%s</td><td><a href=\"event.php?id=%d\">%s</a></td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $row[1], $row[0], $row[2], $ifpa, $mpq, $mpf);
 	}
 	print("</table>\n");
 }

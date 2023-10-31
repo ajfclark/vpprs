@@ -8,7 +8,7 @@ if(!$db) {
 	exit;
 }
 
-$ret = pg_query($db, "select player, events, wins, average, vpprs from standings;");
+$ret = pg_query($db, "select player, events, wins, average, vpprs from standings order by vpprs desc;");
 if(!$ret) {
 	echo pg_last_error($db);
 	exit;
