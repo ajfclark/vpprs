@@ -3,11 +3,24 @@
 import sys
 import argparse
 import psycopg2
-import requests
 import datetime
-from configparser import ConfigParser
 
 import config
+import ifpa
+
+def filterCalendar(calendar, year, state):
+    output = []
+    for entry in calendar:
+        if entry['state'] == state and entry['start_date'][:4] == year:
+            if entry['results_status'] == 'Submitted':
+                output.append(entry)
+            else:
+                print('No results yet for ' + getTournamentStr(entry))
+
+    return output
+
+def getTournamentStr(entry):
+    return entry['start_date'] + ' ' + entry['tournament_name'] + ' [' + entry['tournament_id'] + ']'
 
 parser = argparse.ArgumentParser(description='Script to fetch tournament', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-d', '--debug', action='store_true')
@@ -18,35 +31,26 @@ args = vars(args)
 
 # Read the config
 config = config.readConfig(filename=args['config'])
-
-params = { 'api_key': config['ifpa']['apikey'], 'country': 'Australia' }
-r = requests.get('https://api.ifpapinball.com/v1/calendar/history', params=params)
-if r.status_code != 200:
-    r.raise_for_status()
-    sys.exit()
-
-events = []
-calendar = r.json()['calendar']
-for event in calendar:
-    if event['state'] == 'Vic' and event['start_date'][:4] == args['year']:
-        tournament = event['start_date'] + ' ' + event['tournament_name'] + ' [' + event['tournament_id'] + ']'
-        if event['results_status'] == 'Submitted':
-            events.append(event)
-        else:
-            print('No results yet for ' + tournament)
+calendar = ifpa.getCalendar(config['ifpa']['apikey'], 'Australia')
+calendar = filterCalendar(calendar, state='Vic', year=args['year'])
 
 # Connect to database
 conn = psycopg2.connect(**config['postgresql'])
 cursor = conn.cursor()
 
-for event in events:
-    cursor.execute('SELECT count(id) FROM event WHERE ifpa_id = ' + event['tournament_id']);
+# Loop over entries checking if we have processed it already
+newEvents = []
+for entry in calendar:
+    cursor.execute('SELECT count(id) FROM event WHERE ifpa_id = ' + entry['tournament_id']);
     result = cursor.fetchone()
     if result[0] == 0:
-        tournament = event['start_date'] + ' ' + event['tournament_name'] + ' [' + event['tournament_id'] + ']'
-        print('Nothing in the db for ' + tournament)
+        newEvents.append(entry['tournament_id'])
 
-# Add results to result table
+# For each tournament to update
+# Retreive new data
+# Process the standings
+# Update the database
+
+# Close the database
 cursor.close()
 conn.close()
-    
