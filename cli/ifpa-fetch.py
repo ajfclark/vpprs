@@ -5,24 +5,8 @@ import httplib2
 from bs4 import BeautifulSoup
 import argparse
 import psycopg2
-from configparser import ConfigParser
 
-def readDbConfig(filename='database.ini', section='postgresql'):
-    # create a parser
-    parser = ConfigParser()
-    # read config file
-    parser.read(filename)
-
-    # get section, default to postgresql
-    db = {}
-    if parser.has_section(section):
-        params = parser.items(section)
-        for param in params:
-            db[param[0]] = param[1]
-    else:
-        raise Exception('Section {0} not found in the {1} file'.format(section, filename))
-
-    return db
+import config
 
 def vppr(place: float, numPlayers: int) -> float:
 	if(place == 1.0):
@@ -34,14 +18,14 @@ parser = argparse.ArgumentParser(description='Script to fetch tournament results
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-i', '--ifpaid', required=True)
 parser.add_argument('-d', '--debug', action='store_true')
-parser.add_argument('-c', '--dbconfig', default='database.ini')
+parser.add_argument('-c', '--config', default='config.ini')
 args = parser.parse_args()
 params = vars(args)
 
 # Read the DB config
 ifpaId = params['ifpaid']
 debug = params['debug']
-dbConfig = readDbConfig(filename=params['dbconfig'])
+config = config.readConfig(filename=params['config'])
 
 # Fetch the results from the IFPA site
 http = httplib2.Http()
@@ -95,7 +79,7 @@ for player in data:
 
 if (not debug):
 	# Connect to database
-	conn = psycopg2.connect(**dbConfig)
+	conn = psycopg2.connect(**config['postgresql'])
 	cursor = conn.cursor()
 
 	cursor.execute("INSERT INTO event(date, name, ifpa_id) VALUES (%s, %s, %s) RETURNING id;", (date, title, ifpaId))
