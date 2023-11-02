@@ -17,28 +17,6 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: vppr; Type: DATABASE; Schema: -; Owner: vppr_cli
---
-
-CREATE DATABASE vppr WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.UTF-8';
-
-
-ALTER DATABASE vppr OWNER TO vppr_cli;
-
-\connect vppr
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
-
---
 -- Name: vppr(numeric, numeric); Type: FUNCTION; Schema: public; Owner: vppr_cli
 --
 
@@ -46,12 +24,20 @@ CREATE FUNCTION public.vppr(place numeric, numplayers numeric) RETURNS numeric
     LANGUAGE plpgsql
     AS $$
 DECLARE
+    maxVppr integer := 50;
 BEGIN
-        IF place=1 THEN
-                RETURN 50::numeric;
+    IF numPlayers >= 50 THEN
+        IF numPlayers >= 75 THEN
+            maxVppr = 100;
         ELSE
-                RETURN ((numPlayers - place + 1) / numPlayers) ^ 2 * 45 + 1;
+            maxVppr = 75;
         END IF;
+    END IF;
+    IF place=1 THEN
+        RETURN maxVppr::numeric;
+    ELSE
+        RETURN (maxVppr * 0.92 - 1) * (((numPlayers - place + 1) / numPlayers) ^ 2) + 1;
+    END IF;
 END;
 $$;
 
@@ -120,32 +106,16 @@ ALTER TABLE public.result OWNER TO vppr_cli;
 --
 
 CREATE VIEW public.event_players AS
- SELECT result.event_id AS id,
-    count(result.event_id) AS players
-   FROM public.result
-  GROUP BY result.event_id;
+ SELECT r.event_id AS id,
+    count(r.event_id) AS players,
+    EXTRACT(year FROM e.date) AS year
+   FROM public.result r,
+    public.event e
+  WHERE (r.event_id = e.id)
+  GROUP BY r.event_id, (EXTRACT(year FROM e.date));
 
 
 ALTER TABLE public.event_players OWNER TO vppr_cli;
-
---
--- Name: full_results; Type: VIEW; Schema: public; Owner: vppr_cli
---
-
-CREATE VIEW public.full_results AS
- SELECT r.id,
-    e.date,
-    e.name,
-    r.place,
-    r.player,
-    public.vppr(r.place, (( SELECT count(r_1.id) AS count
-           FROM public.result r_1
-          WHERE (r_1.event_id = e.id)))::numeric) AS vppr
-   FROM (public.result r
-     JOIN public.event e ON ((r.event_id = e.id)));
-
-
-ALTER TABLE public.full_results OWNER TO vppr_cli;
 
 --
 -- Name: result_id_seq; Type: SEQUENCE; Schema: public; Owner: vppr_cli
@@ -234,13 +204,6 @@ ALTER TABLE ONLY public.event
 
 ALTER TABLE ONLY public.result
     ADD CONSTRAINT fk_event FOREIGN KEY (event_id) REFERENCES public.event(id);
-
-
---
--- Name: DATABASE vppr; Type: ACL; Schema: -; Owner: vppr_cli
---
-
-GRANT CONNECT ON DATABASE vppr TO vppr_web;
 
 
 --
