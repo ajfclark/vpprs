@@ -3,16 +3,15 @@
 import sys
 import argparse
 import psycopg2
-import requests
-import csv
 import json
 
 import config
+import matchplay
 
 parser = argparse.ArgumentParser(description='Script to fetch tournament results and dump a CSV',
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-q', '--qualifyingid', required=True)
-parser.add_argument('-f', '--finalsid', default='NA')
+parser.add_argument('-f', '--finalsid', default=0)
 parser.add_argument('-c', '--config', default='config.ini')
 parser.add_argument('-d', '--debug', action='store_true')
 args = parser.parse_args()
@@ -24,9 +23,7 @@ debug = args['debug']
 config = config.readConfig(filename=args['config'])
 
 # Fetch the tournament details from the Matchplay site
-apiurl = "https://next.matchplay.events/api/tournaments/" + args['qualifyingid']
-response = requests.get(apiurl)
-data = response.json()['data']
+data = matchplay.getTournament(args['qualifyingid'])
 
 # Find the event name
 title = data['name']
@@ -34,25 +31,19 @@ title = data['name']
 # Find the date
 date = data['startLocal'][0:10]
 
-# Get player list
-apiurl = "https://next.matchplay.events/api/tournaments/" + args['qualifyingid'] + "/players/csv"
-response = requests.get(apiurl)
-lines = list(csv.reader(response.text.splitlines()))
-player = {}
-for line in lines:
-	player[line[0]] = line[1]
-player['244600']='David Leeds'
-
 # Get the tournament standings
-apiurl = "https://next.matchplay.events/api/tournaments/" + args['qualifyingid'] + "/standings"
-response = requests.get(apiurl)
-rows = response.json()
-data = []
-for row in rows:
-	place = row['position']
-	playerId = row['playerId']
-	name = player[str(playerId)]
-	data.append({ 'placing': place, 'name': name })
+data = matchplay.getStandings(args['qualifyingid'])
+if args['finalsid']: # If there's a finals ID passed
+    finals = matchplay.getStandings(args['finalsid']) # Get the finals standings
+    cut = len(finals) + 1 # Based on the player count in finals, calculate where the cut line was
+    for entry in data:
+        if float(entry['placing']) < cut: # If a player was above the cut
+            # find their entry in the finals
+            finalist = list(filter(lambda finalist: finalist['name'] == entry['name'], finals))
+            if len(finalist) == 0: # They weren't in the finals, assume they missed the cut in a playoff
+                entry['placing'] = cut
+            else: # Otherwise, update the entry with the placing from the finals
+                entry['placing'] = finalist[0]['placing']
 
 # Find entries where multiple players have the same placing, replace with the average of the order in the list
 i = 0
@@ -71,7 +62,34 @@ while i < numPlayers:
 			data[matches[k]]['placing'] = average
 	i = i + len(matches)
 
+# Sort the list
+sorted_list = sorted(data, key=lambda place: place['placing'])
+
 # Output data
 print(date + ":" + title)
+for player in sorted_list:
+    print(player)
+
+# Connect to database
+conn = psycopg2.connect(**config['postgresql'])
+cursor = conn.cursor()
+
+# Update the database
+cursor.execute("INSERT INTO event(date, name, matchplay_q_id, matchplay_f_id) VALUES (%s, %s, %s, %s) RETURNING id;",
+    (date, title, args['qualifyingid'], args['finalsid']))
+eventId = str(cursor.fetchone()[0])
+# Add results to result table
+sqlData = []
 for player in data:
-	print(player)
+    sqlData.append([eventId,str(player['placing']),player['name']])
+cursor.executemany("INSERT INTO result(event_id, place, player) VALUES (%s, %s, %s);", sqlData)
+
+if(not debug):
+    conn.commit()
+else:
+    print(sqlData)
+    conn.rollback()
+
+# Close the database
+cursor.close()
+conn.close()
