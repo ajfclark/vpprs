@@ -42,8 +42,6 @@ END;
 $$;
 
 
-ALTER FUNCTION public.vppr(place numeric, numplayers numeric) OWNER TO vppr_cli;
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -53,38 +51,14 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.event (
-    id integer NOT NULL,
+    id serial primary key,
     date date NOT NULL,
+    ignored boolean,
     ifpa_id integer,
     matchplay_q_id integer,
     matchplay_f_id integer,
-    name text NOT NULL,
-    ignored boolean
+    name text NOT NULL
 );
-
-
-ALTER TABLE public.event OWNER TO vppr_cli;
-
---
--- Name: event_id_seq; Type: SEQUENCE; Schema: public; Owner: vppr_cli
---
-
-CREATE SEQUENCE public.event_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.event_id_seq OWNER TO vppr_cli;
-
---
--- Name: event_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: vppr_cli
---
-
-ALTER SEQUENCE public.event_id_seq OWNED BY public.event.id;
 
 
 --
@@ -92,14 +66,12 @@ ALTER SEQUENCE public.event_id_seq OWNED BY public.event.id;
 --
 
 CREATE TABLE public.result (
-    id integer NOT NULL,
+    id serial primary key,
     event_id integer NOT NULL,
     place numeric(5,3) NOT NULL,
     player text NOT NULL
 );
 
-
-ALTER TABLE public.result OWNER TO vppr_cli;
 
 --
 -- Name: event_players; Type: VIEW; Schema: public; Owner: vppr_cli
@@ -113,31 +85,6 @@ CREATE VIEW public.event_players AS
     public.event e
   WHERE (r.event_id = e.id)
   GROUP BY r.event_id, (EXTRACT(year FROM e.date));
-
-
-ALTER TABLE public.event_players OWNER TO vppr_cli;
-
---
--- Name: result_id_seq; Type: SEQUENCE; Schema: public; Owner: vppr_cli
---
-
-CREATE SEQUENCE public.result_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.result_id_seq OWNER TO vppr_cli;
-
---
--- Name: result_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: vppr_cli
---
-
-ALTER SEQUENCE public.result_id_seq OWNED BY public.result.id;
-
 
 --
 -- Name: standings; Type: VIEW; Schema: public; Owner: vppr_cli
@@ -158,37 +105,6 @@ CREATE VIEW public.standings AS
   ORDER BY (sum(public.vppr(r.place, (p.players)::numeric))) DESC;
 
 
-ALTER TABLE public.standings OWNER TO vppr_cli;
-
---
--- Name: event id; Type: DEFAULT; Schema: public; Owner: vppr_cli
---
-
-ALTER TABLE ONLY public.event ALTER COLUMN id SET DEFAULT nextval('public.event_id_seq'::regclass);
-
-
---
--- Name: result id; Type: DEFAULT; Schema: public; Owner: vppr_cli
---
-
-ALTER TABLE ONLY public.result ALTER COLUMN id SET DEFAULT nextval('public.result_id_seq'::regclass);
-
-
---
--- Name: event event_pkey; Type: CONSTRAINT; Schema: public; Owner: vppr_cli
---
-
-ALTER TABLE ONLY public.event
-    ADD CONSTRAINT event_pkey PRIMARY KEY (id);
-
-
---
--- Name: result result_pkey; Type: CONSTRAINT; Schema: public; Owner: vppr_cli
---
-
-ALTER TABLE ONLY public.result
-    ADD CONSTRAINT result_pkey PRIMARY KEY (id);
-
 
 --
 -- Name: event un_ifpa_id; Type: CONSTRAINT; Schema: public; Owner: vppr_cli
@@ -204,58 +120,4 @@ ALTER TABLE ONLY public.event
 
 ALTER TABLE ONLY public.result
     ADD CONSTRAINT fk_event FOREIGN KEY (event_id) REFERENCES public.event(id);
-
-
---
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
---
-
-GRANT ALL ON SCHEMA public TO vppr_cli;
-
-
---
--- Name: TABLE event; Type: ACL; Schema: public; Owner: vppr_cli
---
-
-GRANT SELECT ON TABLE public.event TO vppr_web;
-
-
---
--- Name: TABLE result; Type: ACL; Schema: public; Owner: vppr_cli
---
-
-GRANT SELECT ON TABLE public.result TO vppr_web;
-
-
---
--- Name: TABLE event_players; Type: ACL; Schema: public; Owner: vppr_cli
---
-
-GRANT SELECT ON TABLE public.event_players TO vppr_web;
-
-
---
--- Name: TABLE standings; Type: ACL; Schema: public; Owner: vppr_cli
---
-
-GRANT SELECT ON TABLE public.standings TO vppr_web;
-
-
---
--- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: public; Owner: vppr_cli
---
-
-ALTER DEFAULT PRIVILEGES FOR ROLE vppr_cli IN SCHEMA public GRANT SELECT ON SEQUENCES  TO vppr_web;
-
-
---
--- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: public; Owner: vppr_cli
---
-
-ALTER DEFAULT PRIVILEGES FOR ROLE vppr_cli IN SCHEMA public GRANT SELECT ON TABLES  TO vppr_web;
-
-
---
--- PostgreSQL database dump complete
---
 
