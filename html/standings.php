@@ -8,7 +8,7 @@ if(!$db) {
 	exit;
 }
 
-$query = "select player, events, wins, average, vpprs from standings order by vpprs desc";
+$query = "select player, events, wins, average, vpprs from standings where year='$year' order by vpprs desc";
 if(isset($_GET['full'])) {
     $query = $query . ';';
 	$heading = 'Full Standings';
