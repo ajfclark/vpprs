@@ -96,7 +96,6 @@ for tournamentId in tournamentIds:
     # Update the database
     cursor.execute("INSERT INTO event(date, name, ifpa_id) VALUES (%s, %s, %s) RETURNING id;", (tournament['event_date'], tournament['tournament_name'], tournamentId))
     eventId = str(cursor.fetchone()[0])
-
     # Add results to result table
     sqlData = []
     for player in data:
@@ -105,6 +104,9 @@ for tournamentId in tournamentIds:
 
     if(not debug):
         conn.commit()
+    else:
+        print(sqlData)
+        conn.rollback()
 
 # Close the database
 cursor.close()
