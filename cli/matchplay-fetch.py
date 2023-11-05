@@ -1,31 +1,30 @@
 #!/usr/bin/python3
 
 import sys
-from bs4 import BeautifulSoup
 import argparse
 import psycopg2
 import requests
 import csv
 import json
 
-def vppr(place: float, numPlayers: int) -> float:
-	if(place == 1.0):
-		return str(50)
-	else:
-		return str(((int(numPlayers) - float(place) + 1) / numPlayers)**2 * 45 + 1)
+import config
 
 parser = argparse.ArgumentParser(description='Script to fetch tournament results and dump a CSV',
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('-i', '--matchplayid', required=True)
-parser.add_argument('-u', '--dbuser', required=True)
-parser.add_argument('-p', '--dbpassword', required=True)
-parser.add_argument('-H', '--dbhost', default='localhost')
-parser.add_argument('-d', '--dbname', default='vppr')
+parser.add_argument('-q', '--qualifyingid', required=True)
+parser.add_argument('-f', '--finalsid', default='NA')
+parser.add_argument('-c', '--config', default='config.ini')
+parser.add_argument('-d', '--debug', action='store_true')
 args = parser.parse_args()
-config = vars(args)
+args = vars(args)
+
+debug = args['debug']
+
+# Read the config
+config = config.readConfig(filename=args['config'])
 
 # Fetch the tournament details from the Matchplay site
-apiurl = "https://next.matchplay.events/api/tournaments/" + config['matchplayid']
+apiurl = "https://next.matchplay.events/api/tournaments/" + args['qualifyingid']
 response = requests.get(apiurl)
 data = response.json()['data']
 
@@ -36,7 +35,7 @@ title = data['name']
 date = data['startLocal'][0:10]
 
 # Get player list
-apiurl = "https://next.matchplay.events/api/tournaments/" + config['matchplayid'] + "/players/csv"
+apiurl = "https://next.matchplay.events/api/tournaments/" + args['qualifyingid'] + "/players/csv"
 response = requests.get(apiurl)
 lines = list(csv.reader(response.text.splitlines()))
 player = {}
@@ -45,10 +44,9 @@ for line in lines:
 player['244600']='David Leeds'
 
 # Get the tournament standings
-apiurl = "https://next.matchplay.events/api/tournaments/" + config['matchplayid'] + "/standings"
+apiurl = "https://next.matchplay.events/api/tournaments/" + args['qualifyingid'] + "/standings"
 response = requests.get(apiurl)
 rows = response.json()
-#print(json.dumps(rows, indent=2))
 data = []
 for row in rows:
 	place = row['position']
@@ -77,21 +75,3 @@ while i < numPlayers:
 print(date + ":" + title)
 for player in data:
 	print(player)
-
-# Connect to database
-conn = psycopg2.connect(database=config['dbname'], host=config['dbhost'], user=config['dbuser'], password=config['dbpassword'])
-cursor = conn.cursor()
-
-# Add event to event table
-cursor.execute("INSERT INTO event(date, name, matchplay_q_id) VALUES (%s, %s, %s) RETURNING id;", (date, title, config['matchplayid']))
-eventid = str(cursor.fetchone()[0])
-
-# Add results to result table
-sqlData = []
-for player in data:
-	sqlData.append([eventid,str(player['placing']),player['name'], vppr(player['placing'], numPlayers)])
-cursor.executemany("INSERT INTO result(event_id, place, player, vppr) VALUES (%s, %s, %s, %s);", sqlData)
-
-conn.commit()
-cursor.close()
-conn.close()
