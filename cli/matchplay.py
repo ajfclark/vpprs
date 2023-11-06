@@ -16,8 +16,12 @@ def getPlayers(tournamentId):
     players = {}
     for line in lines:
         players[line[0]] = line[1]
+    players['163181']='Maria Papoulias'
     players['244600']='David Leeds'
     players['94715']='Darren Lewis'
+    players['47675']='Ryan Cee'
+    players['155474']='Leigh Ashlin'
+    players['523']='John Ebejer'
     return players
 
 def getStandings(tournamentId):

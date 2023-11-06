@@ -45,6 +45,9 @@ if args['finalsid']: # If there's a finals ID passed
             else: # Otherwise, update the entry with the placing from the finals
                 entry['placing'] = finalist[0]['placing']
 
+sorted_list = sorted(data, key=lambda place: place['placing'])
+data = sorted_list
+
 # Find entries where multiple players have the same placing, replace with the average of the order in the list
 i = 0
 numPlayers = len(data)
