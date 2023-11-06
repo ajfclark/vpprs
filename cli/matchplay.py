@@ -22,6 +22,10 @@ def getPlayers(tournamentId):
     players['47675']='Ryan Cee'
     players['155474']='Leigh Ashlin'
     players['523']='John Ebejer'
+    players['45063']='John Ebejer'
+    players['42848']='Stacey Borg'
+    players['72344']='Simon Raik-Allen'
+    players['42845']='Stuart Thornton'
     return players
 
 def getStandings(tournamentId):
