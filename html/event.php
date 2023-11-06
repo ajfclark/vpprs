@@ -32,8 +32,8 @@ if(isset($_GET['id'])) {
 	print("</table>\n");
 }
 else {
-	print("<h3>Event List</h3>");
-	$ret = pg_query($db, "select id, date, name, ifpa_id, matchplay_q_id, matchplay_f_id from event where extract(year from date) = 2023 order by date desc;");
+	print("<h3>$year Event List</h3>");
+	$ret = pg_query($db, "select id, date, name, ifpa_id, matchplay_q_id, matchplay_f_id from event where date >= '$year-01-01' and date < '$year-12-01' order by date desc;");
 	if(!$ret) {
 		echo pg_last_error($db);
 		exit;
