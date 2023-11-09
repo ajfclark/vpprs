@@ -33,7 +33,7 @@ if(isset($_GET['id'])) {
 }
 else {
 	print("<h3>$year Event List</h3>");
-	$ret = pg_query($db, "select id, date, name, ifpa_id, matchplay_q_id, matchplay_f_id from event where date >= '$year-01-01' and date < '$year-12-01' order by date desc;");
+	$ret = pg_query($db, "select id, date, name, ifpa_id, matchplay_q_id, matchplay_f_id, ignored from event where date >= '$year-01-01' and date <= '$year-12-31' order by date desc;");
 	if(!$ret) {
 		echo pg_last_error($db);
 		exit;
@@ -56,7 +56,12 @@ else {
 		else
 			$mpf='';
 
-		printf("<tr><td>%s</td><td><a href=\"event.php?id=%d\">%s</a></td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $row[1], $row[0], $row[2], $ifpa, $mpq, $mpf);
+		if($row[6]=='t')
+			$ignored='Ignored';
+		else
+			$ignored='';
+
+		printf("<tr><td>%s</td><td><a href=\"event.php?id=%d\">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $row[1], $row[0], $row[2], $ifpa, $mpq, $mpf, $ignored);
 	}
 	print("</table>\n");
 }
