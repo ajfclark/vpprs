@@ -1,29 +1,49 @@
+<html>
+<html>
+<head>
 <?php
+$maxYear = date("Y");
 if(isset($_GET['year'])) {
 	$year = intval(htmlspecialchars($_GET['year']));
-	if ($year > 2023 or $year < 2021) {
-		$year = 2023;
+	if ($year > $maxYear or $year < 2021) {
+		$year = $maxYear;
 	}
 }
 else {
-	$year = 2023;
+	$year = $maxYear;
 }
-print("<html>
-<html>
-<head>
-<title>$year VPPR</title>
-</head>
-<body>
-<h1>$year VPPRs</h1>");
-print("<table>");
-for($i = 2023; $i > 2020 ; $i--) {
-	print("<tr>");
-	print("<td>$i:</td>");
-	print("<td><a href=\"standings.php?year=$i\">Top 32</a></td>");
-	print("<td><a href=\"standings.php?year=$i&full\">Full Standings</a></td>");
-	print("<td><a href=\"event.php?year=$i\">Event List</a></td>");
-	print("</tr>");
+$title="$year VPPRs $title";
+print("<title>$title</title>\n");
+print("</head>\n");
+
+print("<body>\n");
+print("<div><h1>Victorian State Championship $year (VFPA)</h1></div>\n");
+
+print("<div>\n");
+for ($i = $maxYear; $i >= 2021; $i--) {
+	if($i == $year) {
+		print("<strong>$i</strong> ");
+	}
+	else {
+		print("<a href=\"standings.php?year=$i\">$i</a> ");
+	}
 }
-print("</table>");
-print("<hr>");
+print("</div>\n");
+
+$pages = [
+	"/standings.php" => "Standings",
+	"/event.php" => "Events"
+];
+print("<div>");
+foreach ($pages as $page => $heading) {
+	if($_SERVER['PHP_SELF'] == $page) {
+		print("<b>$heading</b> ");
+	}
+	else {
+		print("<a href=\"$page?year=$year\">$heading</a> ");
+	}
+}
+print("</div>\n");
+
 ?>
+<hr>
