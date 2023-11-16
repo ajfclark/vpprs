@@ -20,7 +20,14 @@ if(isset($_GET['id'])) {
 		printf("<h3>%s: %s</h3>", $row[0], $row[1]);
 	}
 
-	$ret = pg_query($db, "Select r.place, r.player, vppr(r.place, p.players) as vppr from result r JOIN (SELECT r2.event_id, count(r2.event_id) as players from result r2 group by r2.event_id) p ON r.event_id = p.event_id Where r.event_id = $id order by place, player asc;");
+	$ret = pg_query($db, "Select r.place, p.name, vppr(r.place, x.players) as vppr
+from
+        event e JOIN
+        result r ON (e.id = r.event_id)
+        JOIN event_ext x ON (r.event_id = x.id)
+        JOIN player p ON (r.player_id = p.id)
+Where r.event_id = $id order by place, p.name asc;");
+
 	if(!$ret) {
 		echo pg_last_error($db);
 		exit;
