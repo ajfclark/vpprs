@@ -17,7 +17,6 @@ print("<title>$title</title>\n");
 print("</head>\n");
 
 print("<body>\n");
-print("<div><h1>Victorian State Championship $year (VFPA)</h1></div>\n");
 
 print("<div>\n");
 for ($i = $maxYear; $i >= 2021; $i--) {
@@ -25,14 +24,15 @@ for ($i = $maxYear; $i >= 2021; $i--) {
 		print("<strong>$i</strong> ");
 	}
 	else {
-		print("<a href=\"standings.php?year=$i\">$i</a> ");
+		print("<a href=\"" . $_SERVER['PHP_SELF'] . "?year=$i\">$i</a> ");
 	}
 }
 print("</div>\n");
 
 $pages = [
 	"/standings.php" => "Standings",
-	"/event.php" => "Events"
+	"/event.php" => "Events",
+	"/player.php" => "Players",
 ];
 print("<div>");
 foreach ($pages as $page => $heading) {
@@ -45,5 +45,6 @@ foreach ($pages as $page => $heading) {
 }
 print("</div>\n");
 
+print("<div><h1>Victorian State Championship $year (VFPA)</h1></div>\n");
 ?>
 <hr>
