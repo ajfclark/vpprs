@@ -7,6 +7,7 @@ import json
 
 import config
 import matchplay
+import vppr
 
 parser = argparse.ArgumentParser(description='Script to fetch tournament results and dump a CSV',
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -37,15 +38,15 @@ if args['finalsid']: # If there's a finals ID passed
     finals = matchplay.getStandings(args['finalsid']) # Get the finals standings
     cut = len(finals) + 1 # Based on the player count in finals, calculate where the cut line was
     for entry in data:
-        if float(entry['placing']) < cut: # If a player was above the cut
+        if float(entry['position']) < cut: # If a player was above the cut
             # find their entry in the finals
-            finalist = list(filter(lambda finalist: finalist['name'] == entry['name'], finals))
+            finalist = list(filter(lambda finalist: finalist['playerId'] == entry['playerId'], finals))
             if len(finalist) == 0: # They weren't in the finals, assume they missed the cut in a playoff
-                entry['placing'] = cut
+                entry['position'] = cut
             else: # Otherwise, update the entry with the placing from the finals
-                entry['placing'] = finalist[0]['placing']
+                entry['position'] = finalist[0]['position']
 
-sorted_list = sorted(data, key=lambda place: place['placing'])
+sorted_list = sorted(data, key=lambda place: place['position'])
 data = sorted_list
 
 # Find entries where multiple players have the same placing, replace with the average of the order in the list
@@ -54,7 +55,7 @@ numPlayers = len(data)
 while i < numPlayers:
 	matches = [ i ]
 	for k in range(i + 1, numPlayers):
-		if(data[i]['placing'] == data[k]['placing']):
+		if(data[i]['position'] == data[k]['position']):
 			matches.append(k)
 	if(len(matches) > 1):
 		total = 0
@@ -62,20 +63,31 @@ while i < numPlayers:
 			total = total + int(matches[k]) + 1
 		average = total / len(matches)
 		for k in range(len(matches)):
-			data[matches[k]]['placing'] = average
+			data[matches[k]]['position'] = average
 	i = i + len(matches)
 
 # Sort the list
-sorted_list = sorted(data, key=lambda place: place['placing'])
+sorted_list = sorted(data, key=lambda place: place['position'])
+
+# PlayerList
+players = matchplay.getPlayers(args['qualifyingid'])
+
+# Connect to database
+conn = psycopg2.connect(**config['postgresql'])
+cursor = conn.cursor()
+
+# Build the id mapping
+for matchPlayId, playerName in players.items():
+    vpprPlayerId = vppr.getPlayerId(cursor, playerName)
+    players[matchPlayId] = vpprPlayerId
+
+print(players)
+sys.exit()
 
 # Output data
 print(date + ":" + title)
 for player in sorted_list:
     print(player)
-
-# Connect to database
-conn = psycopg2.connect(**config['postgresql'])
-cursor = conn.cursor()
 
 # Update the database
 cursor.execute("INSERT INTO event(date, name, matchplay_q_id, matchplay_f_id) VALUES (%s, %s, %s, %s) RETURNING id;",
