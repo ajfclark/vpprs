@@ -9,7 +9,6 @@ def vppr(place: float, numPlayers: int) -> float:
         return str(((int(numPlayers) - float(place) + 1) / numPlayers)**2 * 45 + 1)
 
 def getPlayerId(cursor, name: str) -> int:
-    print(name)
     cursor.execute("SELECT id FROM player WHERE name='" + str(name) + "';")
 
     temp = cursor.fetchone()
@@ -19,3 +18,8 @@ def getPlayerId(cursor, name: str) -> int:
         playerId = None
 
     return playerId
+
+def addPlayer(cursor, name: str) -> int:
+    cursor.execute("INSERT INTO player(name) VALUES ('%s') RETURNING id;" % (name))
+    return int(cursor.fetchone()[0])
+

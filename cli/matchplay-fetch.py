@@ -70,39 +70,39 @@ while i < numPlayers:
 sorted_list = sorted(data, key=lambda place: place['position'])
 
 # PlayerList
-players = matchplay.getPlayers(args['qualifyingid'])
+matchPlayPlayers = matchplay.getPlayers(args['qualifyingid'])
 
 # Connect to database
 conn = psycopg2.connect(**config['postgresql'])
 cursor = conn.cursor()
 
+players = {}
 # Build the id mapping
-for matchPlayId, playerName in players.items():
+for matchPlayId, playerName in matchPlayPlayers.items():
     vpprPlayerId = vppr.getPlayerId(cursor, playerName)
-    players[matchPlayId] = vpprPlayerId
-
-print(players)
-sys.exit()
+    if vpprPlayerId == None:
+        vpprPlayerId = vppr.addPlayer(cursor, playerName)
+    players[matchPlayId] = { 'id': vpprPlayerId, 'name': playerName }
 
 # Output data
 print(date + ":" + title)
 for player in sorted_list:
-    print(player)
+    print(str(player['position']) + "\t" + players[player['playerId']]['name'])
 
 # Update the database
 cursor.execute("INSERT INTO event(date, name, matchplay_q_id, matchplay_f_id) VALUES (%s, %s, %s, %s) RETURNING id;",
     (date, title, args['qualifyingid'], args['finalsid']))
-eventId = str(cursor.fetchone()[0])
+eventId = int(cursor.fetchone()[0])
+
 # Add results to result table
 sqlData = []
 for player in data:
-    sqlData.append([eventId,str(player['placing']),player['name']])
-cursor.executemany("INSERT INTO result(event_id, place, player) VALUES (%s, %s, %s);", sqlData)
+    sqlData.append([eventId,float(player['position']),players[player['playerId']]['id']])
+cursor.executemany("INSERT INTO result(event_id, place, player_id) VALUES (%s, %s, %s);", sqlData)
 
 if(not debug):
     conn.commit()
 else:
-    print(sqlData)
     conn.rollback()
 
 # Close the database
