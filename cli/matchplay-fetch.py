@@ -87,8 +87,7 @@ for matchPlayId, playerName in matchPlayPlayers.items():
 # Output data
 print(date + ":" + title)
 for player in sorted_list:
-    print(str(player['position']) + "\t" + players[player['playerId']]['name'])
-
+    print('{0:4.1f} {1:5.2f} {2:}'.format(player['position'], vppr.vppr(player['position'], numPlayers), players[player['playerId']]['name']))
 # Update the database
 cursor.execute("INSERT INTO event(date, name, matchplay_q_id, matchplay_f_id) VALUES (%s, %s, %s, %s) RETURNING id;",
     (date, title, args['qualifyingid'], args['finalsid']))
