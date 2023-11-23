@@ -33,7 +33,7 @@ for row in cursor:
         continue
     for candidate in candidates:
         name = candidate['first_name'].strip() + ' ' + candidate['last_name'].strip()
-        if name != row[1]:
+        if name.lower() != row[1].lower():
             continue
         if candidate['country_code'] != 'AU':
             continue
