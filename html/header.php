@@ -45,6 +45,6 @@ foreach ($pages as $page => $heading) {
 }
 print("</div>\n");
 
-print("<div><h1>Victorian State Championship $year (VFPA)</h1></div>\n");
+print("<div><h2>Victorian State Pinball Championship $year (VFPA)</h2></div>\n");
 ?>
 <hr>
