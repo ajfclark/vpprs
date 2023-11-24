@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 15.3 (Debian 15.3-0+deb12u1)
--- Dumped by pg_dump version 15.3 (Debian 15.3-0+deb12u1)
+-- Dumped from database version 15.5 (Debian 15.5-0+deb12u1)
+-- Dumped by pg_dump version 15.5 (Debian 15.5-0+deb12u1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -53,12 +53,23 @@ SET default_table_access_method = heap;
 CREATE TABLE public.event (
     id integer NOT NULL,
     date date NOT NULL,
-    ignored boolean,
+    ignored boolean DEFAULT false NOT NULL,
     ifpa_id integer,
     matchplay_q_id integer,
     matchplay_f_id integer,
     name text NOT NULL
 );
+
+
+--
+-- Name: event_ext; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.event_ext AS
+SELECT
+    NULL::integer AS id,
+    NULL::bigint AS players,
+    NULL::numeric AS year;
 
 
 --
@@ -82,18 +93,6 @@ ALTER SEQUENCE public.event_id_seq OWNED BY public.event.id;
 
 
 --
--- Name: event_players; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.event_players AS
-SELECT
-    NULL::integer AS id,
-    NULL::bigint AS players,
-    NULL::numeric AS year,
-    NULL::boolean AS ignored;
-
-
---
 -- Name: result; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -101,8 +100,60 @@ CREATE TABLE public.result (
     id integer NOT NULL,
     event_id integer NOT NULL,
     place numeric(5,3) NOT NULL,
-    player text NOT NULL
+    player_id integer
 );
+
+
+--
+-- Name: event_players; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.event_players AS
+ SELECT result.event_id AS id,
+    count(result.event_id) AS players
+   FROM public.result
+  GROUP BY result.event_id;
+
+
+--
+-- Name: event_year; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.event_year AS
+ SELECT event.id,
+    EXTRACT(year FROM event.date) AS year
+   FROM public.event;
+
+
+--
+-- Name: player; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.player (
+    id integer NOT NULL,
+    ifpa_id numeric,
+    name text NOT NULL
+);
+
+
+--
+-- Name: player_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.player_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: player_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.player_id_seq OWNED BY public.player.id;
 
 
 --
@@ -130,18 +181,19 @@ ALTER SEQUENCE public.result_id_seq OWNED BY public.result.id;
 --
 
 CREATE VIEW public.standings AS
- SELECT p.year,
-    r.player,
-    count(r.player) AS events,
+ SELECT x.year,
+    p.name AS player,
+    count(r.player_id) AS events,
     count(r.place) FILTER (WHERE (r.place = (1)::numeric)) AS wins,
-    avg(public.vppr(r.place, (p.players)::numeric)) AS average,
-    sum(public.vppr(r.place, (p.players)::numeric)) AS vpprs
-   FROM public.result r,
-    public.event e,
-    public.event_players p
-  WHERE ((r.event_id = e.id) AND (e.ignored IS NOT TRUE) AND (r.event_id = p.id))
-  GROUP BY p.year, r.player
-  ORDER BY p.year, (sum(public.vppr(r.place, (p.players)::numeric))) DESC;
+    avg(public.vppr(r.place, (x.players)::numeric)) AS average,
+    sum(public.vppr(r.place, (x.players)::numeric)) AS vpprs
+   FROM (((public.player p
+     JOIN public.result r ON ((p.id = r.player_id)))
+     JOIN public.event e ON ((r.event_id = e.id)))
+     JOIN public.event_ext x ON ((r.event_id = x.id)))
+  WHERE (e.ignored IS NOT TRUE)
+  GROUP BY x.year, p.name
+  ORDER BY x.year DESC, (sum(public.vppr(r.place, (x.players)::numeric))) DESC;
 
 
 --
@@ -149,6 +201,13 @@ CREATE VIEW public.standings AS
 --
 
 ALTER TABLE ONLY public.event ALTER COLUMN id SET DEFAULT nextval('public.event_id_seq'::regclass);
+
+
+--
+-- Name: player id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.player ALTER COLUMN id SET DEFAULT nextval('public.player_id_seq'::regclass);
 
 
 --
@@ -164,6 +223,22 @@ ALTER TABLE ONLY public.result ALTER COLUMN id SET DEFAULT nextval('public.resul
 
 ALTER TABLE ONLY public.event
     ADD CONSTRAINT event_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: player player_ifpa_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.player
+    ADD CONSTRAINT player_ifpa_id_key UNIQUE (ifpa_id);
+
+
+--
+-- Name: player player_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.player
+    ADD CONSTRAINT player_pkey PRIMARY KEY (id);
 
 
 --
@@ -183,16 +258,16 @@ ALTER TABLE ONLY public.event
 
 
 --
--- Name: event_players _RETURN; Type: RULE; Schema: public; Owner: -
+-- Name: event_ext _RETURN; Type: RULE; Schema: public; Owner: -
 --
 
-CREATE OR REPLACE VIEW public.event_players AS
+CREATE OR REPLACE VIEW public.event_ext AS
  SELECT e.id,
     count(r.event_id) AS players,
-    EXTRACT(year FROM e.date) AS year,
-    e.ignored
+    EXTRACT(year FROM e.date) AS year
    FROM (public.event e
      JOIN public.result r ON ((e.id = r.event_id)))
+  WHERE (e.ignored IS NOT TRUE)
   GROUP BY e.id;
 
 
@@ -205,45 +280,11 @@ ALTER TABLE ONLY public.result
 
 
 --
--- Name: TABLE event; Type: ACL; Schema: public; Owner: -
+-- Name: result fk_player_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-GRANT SELECT ON TABLE public.event TO vppr_test_web;
-
-
---
--- Name: SEQUENCE event_id_seq; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON SEQUENCE public.event_id_seq TO vppr_test_web;
-
-
---
--- Name: TABLE event_players; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE public.event_players TO vppr_test_web;
-
-
---
--- Name: TABLE result; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE public.result TO vppr_test_web;
-
-
---
--- Name: SEQUENCE result_id_seq; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON SEQUENCE public.result_id_seq TO vppr_test_web;
-
-
---
--- Name: TABLE standings; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE public.standings TO vppr_test_web;
+ALTER TABLE ONLY public.result
+    ADD CONSTRAINT fk_player_id FOREIGN KEY (player_id) REFERENCES public.player(id);
 
 
 --
