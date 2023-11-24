@@ -20,6 +20,6 @@ def getPlayerId(cursor, name: str) -> int:
     return playerId
 
 def addPlayer(cursor, name: str) -> int:
-    cursor.execute("INSERT INTO player(name) VALUES ('%s') RETURNING id;" % (name))
+    cursor.execute("INSERT INTO player(name) VALUES ('%s') RETURNING id;" % (name.strip()))
     return int(cursor.fetchone()[0])
 
