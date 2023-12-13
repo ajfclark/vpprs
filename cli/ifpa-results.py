@@ -15,8 +15,8 @@ def filterCalendar(calendar, year, state):
         if entry['state'] == state and entry['start_date'][:4] == year:
             if entry['results_status'] == 'Submitted':
                 output.append(entry)
-            else:
-                print('No results yet for ' + getTournamentStr(entry))
+#            else:
+#                print('No results yet for ' + getTournamentStr(entry))
 
     return output
 
