@@ -21,3 +21,17 @@ def getTournamentResults(apikey, tournamentId):
         r.raise_for_status()
 
     return r.json()['tournament']
+
+def searchPlayer(apikey, name):
+    params = { 'api_key': apikey, 'q': name }
+    url = 'https://api.ifpapinball.com/v1/player/search'
+    
+    r = requests.get(url, params=params)
+    if r.status_code != 200:
+        r.raise_for_status()
+
+    ret = r.json()['search']
+    if ret == 'No players found':
+        return None
+    else:
+        return ret

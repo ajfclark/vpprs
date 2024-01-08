@@ -7,6 +7,7 @@ import datetime
 
 import config
 import ifpa
+import vppr
 
 def filterCalendar(calendar, year, state):
     output = []
@@ -14,8 +15,8 @@ def filterCalendar(calendar, year, state):
         if entry['state'] == state and entry['start_date'][:4] == year:
             if entry['results_status'] == 'Submitted':
                 output.append(entry)
-            else:
-                print('No results yet for ' + getTournamentStr(entry))
+#            else:
+#                print('No results yet for ' + getTournamentStr(entry))
 
     return output
 
@@ -88,6 +89,15 @@ for tournamentId in tournamentIds:
     # Process the standings
     data = getPlayerData(tournament['results'])
 
+    players = {}
+    # Build the id mapping
+    for player in data:
+        playerName = player['name']
+        vpprPlayerId = vppr.getPlayerId(cursor, playerName)
+        if vpprPlayerId == None:
+            vpprPlayerId = vppr.addPlayer(cursor, playerName)
+        players[playerName] = { 'id': vpprPlayerId, 'name': playerName }
+
     # Debug output
     print(tournament['event_date'] + ":" + tournament['tournament_name'])
     for player in data:
@@ -95,12 +105,12 @@ for tournamentId in tournamentIds:
 
     # Update the database
     cursor.execute("INSERT INTO event(date, name, ifpa_id) VALUES (%s, %s, %s) RETURNING id;", (tournament['event_date'], tournament['tournament_name'], tournamentId))
-    eventId = str(cursor.fetchone()[0])
+    eventId = cursor.fetchone()[0]
     # Add results to result table
     sqlData = []
     for player in data:
-        sqlData.append([eventId,str(player['placing']),player['name']])
-    cursor.executemany("INSERT INTO result(event_id, place, player) VALUES (%s, %s, %s);", sqlData)
+        sqlData.append([eventId,player['placing'],players[player['name']]['id']])
+    cursor.executemany("INSERT INTO result(event_id, place, player_id) VALUES (%s, %s, %s);", sqlData)
 
     if(not debug):
         conn.commit()
