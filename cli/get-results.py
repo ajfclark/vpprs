@@ -9,16 +9,9 @@ import config
 import ifpa
 import vppr
 
-def filterCalendar(calendar, year, state):
-    output = []
-    for entry in calendar:
-        if entry['state'] == state and entry['start_date'][:4] == year:
-            if entry['results_status'] == 'Submitted':
-                output.append(entry)
-#            else:
-#                print('No results yet for ' + getTournamentStr(entry))
-
-    return output
+def debugPrint(string):
+    if debug:
+        print(string)
 
 def getTournamentStr(entry):
     return entry['start_date'] + ' ' + entry['tournament_name'] + ' [' + entry['tournament_id'] + ']'
@@ -28,7 +21,7 @@ def getPlayerData(results):
     for result in tournament['results']:
         place = float(result['position'])
         name = result['first_name'].strip() + ' ' + result['last_name'].strip()
-        data.append({ 'placing': place, 'name': name })
+        data.append({ 'placing': place, 'name': name, 'ifpa_id': result['player_id'] })
 
     # Find entries where multiple players have the same placing, replace with the average of the order in the list
     i = 0
@@ -62,60 +55,66 @@ debug = args['debug']
 # Read the config
 config = config.readConfig(filename=args['config'])
 
-if(args['tournamentid']):
-    calendar = [ {'tournament_id': args['tournamentid'] } ]
-else:
-    # Look at the calendar for new events
-    calendar = ifpa.getCalendar(config['ifpa']['apikey'], 'Australia')
-    calendar = filterCalendar(calendar, state='Vic', year=args['year'])
-
 # Connect to database
 conn = psycopg2.connect(**config['postgresql'])
 cursor = conn.cursor()
-cursor.execute('SELECT ifpa_id FROM event WHERE ifpa_id is not null')
-dbTournamentIds = [tournamentId for row in cursor for tournamentId in row]
 
-# Loop over entries checking if we have processed it already
-tournamentIds = []
-for entry in calendar:
-    if int(entry['tournament_id']) not in dbTournamentIds:
-        tournamentIds.append(entry['tournament_id'])
+# Get ifpa ids of tournaments that already have results
+cursor.execute('select e.ifpa_id from event e where e.id in (select distinct event_id from result);')
+existingTournamentIds = [ tournamentId for row in cursor for tournamentId in row ]
+
+if(args['tournamentid']):
+    # Either take the tournamentid from the commandline
+    tournamentIds = [ int(args['tournamentid']) ]
+else:
+    # or load the list of events with no results from the DB
+    cursor.execute('select e.ifpa_id from event e where e.id not in (select distinct event_id from result);')
+    tournamentIds = [ tournamentId for row in cursor for tournamentId in row ]
 
 # For each tournament to update
 for tournamentId in tournamentIds:
+    if tournamentId in existingTournamentIds:
+        print('Results already exist for ' + str(tournamentId))
+        continue
+
     # Retreive new data
     tournament = ifpa.getTournamentResults(config['ifpa']['apikey'], tournamentId)
+    if tournament == None:
+        debugPrint('No results for ' + str(tournamentId))
+        continue
+
+    debugPrint(tournament['event_date'] + ":" + tournament['tournament_name'])
 
     # Process the standings
-    data = getPlayerData(tournament['results'])
+    tempData = getPlayerData(tournament['results'])
 
-    players = {}
+    data = []
     # Build the id mapping
-    for player in data:
+    for player in tempData:
+        ifpaId = player['ifpa_id']
         playerName = player['name']
-        vpprPlayerId = vppr.getPlayerId(cursor, playerName)
-        if vpprPlayerId == None:
-            vpprPlayerId = vppr.addPlayer(cursor, playerName)
-        players[playerName] = { 'id': vpprPlayerId, 'name': playerName }
-
-    # Debug output
-    print(tournament['event_date'] + ":" + tournament['tournament_name'])
-    for player in data:
-        print(player)
+        vpprId = vppr.getPlayerId(cursor, ifpaId)
+        if vpprId == None:
+            vpprId = vppr.addPlayer(cursor, playerName, ifpaId)
+        obj = { 'placing': player['placing'], 'name': player['name'], 'ifpa_id': player['ifpa_id'], 'vppr_id': vpprId }
+        debugPrint(obj)
+        data.append(obj)
 
     # Update the database
-    cursor.execute("INSERT INTO event(date, name, ifpa_id) VALUES (%s, %s, %s) RETURNING id;", (tournament['event_date'], tournament['tournament_name'], tournamentId))
+    cursor.execute("SELECT id FROM event WHERE ifpa_id=%s" % (tournamentId))
     eventId = cursor.fetchone()[0]
     # Add results to result table
     sqlData = []
     for player in data:
-        sqlData.append([eventId,player['placing'],players[player['name']]['id']])
+        obj = [eventId,player['placing'],player['vppr_id']]
+        sqlData.append(obj)
+        debugPrint(obj)
     cursor.executemany("INSERT INTO result(event_id, place, player_id) VALUES (%s, %s, %s);", sqlData)
+
 
     if(not debug):
         conn.commit()
     else:
-        print(sqlData)
         conn.rollback()
 
 # Close the database
