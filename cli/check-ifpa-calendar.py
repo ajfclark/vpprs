@@ -36,7 +36,15 @@ debug = args['debug']
 config = config.readConfig(filename=args['config'])
 
 # Look at the calendar for new events
-calendar = filterCalendar(ifpa.getCalendar(config['ifpa']['apikey'], 'Australia'), state='Vic', year=args['year'])
+try:
+    calendar = ifpa.getCalendar(config['ifpa']['apikey'], 'Australia')
+except Exception as e:
+    print(type(e))
+    print(e.args)
+    print(e)
+    raise e
+
+calendar = filterCalendar(calendar, state='Vic', year=args['year'])
 
 # Connect to database
 conn = psycopg2.connect(**config['postgresql'])
