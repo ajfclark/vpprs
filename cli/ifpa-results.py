@@ -12,7 +12,7 @@ import vppr
 def filterCalendar(calendar, year, state):
     output = []
     for entry in calendar:
-        if entry['state'] == state and entry['start_date'][:4] == year:
+        if entry['state'].lower() == state.lower() and entry['start_date'][:4] == year:
             if entry['results_status'] == 'Submitted':
                 output.append(entry)
 #            else:
