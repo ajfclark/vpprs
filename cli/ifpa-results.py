@@ -70,7 +70,7 @@ else:
     try:
         calendar = ifpa.getCalendar(config['ifpa']['apikey'], 'Australia')
     except requests.exceptions.ConnectionError as err:
-        printf(f"Connection Error: {err.args}")
+        print(f"Connection Error: {err.args}")
         sys.exit()
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
