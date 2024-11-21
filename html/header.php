@@ -15,7 +15,7 @@ else {
 $title="$year VPPRs $title";
 print("<title>$title</title>\n");
 print("</head>\n");
-
+print("<link rel=\"stylesheet\" href=\"https://cdn.simplecss.org/simple.min.css\">");
 print("<body>\n");
 
 print("<div>\n");
