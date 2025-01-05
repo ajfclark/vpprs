@@ -4,6 +4,7 @@ import sys
 import argparse
 import psycopg2
 import datetime
+import requests
 
 import config
 import ifpa
@@ -66,7 +67,15 @@ if(args['tournamentid']):
     calendar = [ {'tournament_id': args['tournamentid'] } ]
 else:
     # Look at the calendar for new events
-    calendar = ifpa.getCalendar(config['ifpa']['apikey'], 'Australia')
+    try:
+        calendar = ifpa.getCalendar(config['ifpa']['apikey'], 'Australia')
+    except requests.exceptions.ConnectionError as err:
+        print(f"Connection Error: {err.args}")
+        sys.exit()
+    except Exception as err:
+        print(f"Unexpected {err=}, {type(err)=}")
+        raise 
+
     calendar = filterCalendar(calendar, state='Vic', year=args['year'])
 
 # Connect to database
