@@ -33,6 +33,7 @@ $pages = [
 	"/standings.php" => "Standings",
 	"/event.php" => "Events",
 	"/player.php" => "Players",
+	"/mdstandings.php" => "Moon Dog",
 ];
 print("<div>");
 foreach ($pages as $page => $heading) {
