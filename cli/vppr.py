@@ -9,6 +9,7 @@ def vppr(place: float, numPlayers: int) -> float:
         return float(((int(numPlayers) - float(place) + 1) / numPlayers)**2 * 45 + 1)
 
 def getPlayerId(cursor, name: str) -> int:
+    name = name.strip().replace("'", "")
     cursor.execute("SELECT id FROM player WHERE name='" + str(name) + "';")
 
     temp = cursor.fetchone()

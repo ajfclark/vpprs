@@ -1,5 +1,4 @@
 <html>
-<html>
 <head>
 <?php
 $maxYear = date("Y");
@@ -14,37 +13,40 @@ else {
 }
 $title="$year VPPRs $title";
 print("<title>$title</title>\n");
-print("</head>\n");
-
-print("<body>\n");
-
-print("<div>\n");
+?>
+<link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+</head>
+<body>
+<header>
+<h3>Victorian State Pinball Championship <?php print($year); ?></h3>
+<nav>
+<?php
 for ($i = $maxYear; $i >= 2021; $i--) {
 	if($i == $year) {
-		print("<strong>$i</strong> ");
+		print("<a aria-current=\"page\" href=\"#\">$i</a>");
 	}
 	else {
-		print("<a href=\"" . $_SERVER['PHP_SELF'] . "?year=$i\">$i</a> ");
+		print("<a href=\"" . $_SERVER['PHP_SELF'] . "?year=$i\">$i</a>");
 	}
 }
-print("</div>\n");
-
+?>
+</nav>
+<nav>
+<?php
 $pages = [
 	"/standings.php" => "Standings",
 	"/event.php" => "Events",
 	"/player.php" => "Players",
+	"/mdstandings.php" => "Moon Dog",
 ];
-print("<div>");
 foreach ($pages as $page => $heading) {
 	if($_SERVER['PHP_SELF'] == $page) {
-		print("<b>$heading</b> ");
+		print("<a aria-current=\"page\" href=\"#\">$heading</a>");
 	}
 	else {
-		print("<a href=\"$page?year=$year\">$heading</a> ");
+		print("<a href=\"$page?year=$year\">$heading</a>");
 	}
 }
-print("</div>\n");
-
-print("<div><h2>Victorian State Pinball Championship $year (VFPA)</h2></div>\n");
 ?>
-<hr>
+</nav>
+</header>

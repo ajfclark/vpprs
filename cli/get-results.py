@@ -4,6 +4,7 @@ import sys
 import argparse
 import psycopg2
 import datetime
+import requests
 
 import config
 import ifpa

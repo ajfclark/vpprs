@@ -10,7 +10,15 @@ def getCalendar(apikey, country):
     if r.status_code != 200:
         r.raise_for_status()
 
-    return r.json()['calendar']
+    try:
+        json = r.json()
+        calendar = json['calendar']
+    except Exception as err:
+        print(f"Unexpected {err=}, {type(err)=}")
+        print(f"{r=}")
+        raise
+
+    return calendar
 
 def getTournamentResults(apikey, tournamentId):
     params = { 'api_key': apikey }

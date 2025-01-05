@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 15.5 (Debian 15.5-0+deb12u1)
--- Dumped by pg_dump version 15.5 (Debian 15.5-0+deb12u1)
+-- Dumped from database version 15.6 (Debian 15.6-0+deb12u1)
+-- Dumped by pg_dump version 15.6 (Debian 15.6-0+deb12u1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -152,6 +152,29 @@ CREATE TABLE public.player (
 
 
 ALTER TABLE public.player OWNER TO vppr_cli;
+
+--
+-- Name: mdstandings; Type: VIEW; Schema: public; Owner: vppr_cli
+--
+
+CREATE VIEW public.mdstandings AS
+ SELECT x.year,
+    p.id AS playerid,
+    p.name AS player,
+    count(r.player_id) AS events,
+    count(r.place) FILTER (WHERE (r.place = (1)::numeric)) AS wins,
+    avg(public.vppr(r.place, (x.players)::numeric)) AS average,
+    sum(public.vppr(r.place, (x.players)::numeric)) AS vpprs
+   FROM (((public.player p
+     JOIN public.result r ON ((p.id = r.player_id)))
+     JOIN public.event e ON ((r.event_id = e.id)))
+     JOIN public.event_ext x ON ((r.event_id = x.id)))
+  WHERE ((e.ignored IS NOT TRUE) AND (x.month <> (12)::numeric) AND (e.name ~~ '%Moon Dog%'::text))
+  GROUP BY x.year, p.id, p.name
+  ORDER BY x.year DESC, (sum(public.vppr(r.place, (x.players)::numeric))) DESC;
+
+
+ALTER TABLE public.mdstandings OWNER TO vppr_cli;
 
 --
 -- Name: player_id_seq; Type: SEQUENCE; Schema: public; Owner: vppr_cli
@@ -373,6 +396,13 @@ GRANT ALL ON TABLE public.result TO aclark;
 --
 
 GRANT SELECT ON TABLE public.player TO vppr_web;
+
+
+--
+-- Name: TABLE mdstandings; Type: ACL; Schema: public; Owner: vppr_cli
+--
+
+GRANT SELECT ON TABLE public.mdstandings TO vppr_web;
 
 
 --
