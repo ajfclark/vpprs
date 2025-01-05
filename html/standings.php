@@ -18,13 +18,13 @@ if(!$ret) {
     exit;
 }
 print("<table>\n");
-print("<tr><th>Rank</th><th>Player</th><th>Events</th><th>Wins</th><th>Average</th><th>VPPRs<th></th>\n");
+print("<tr><th>Rank</th><th>Player</th><th>Events</th><th>Wins</th><th>Average</th><th>VPPRs</th>\n");
 $i = 0;
 while($row = pg_fetch_row($ret)) {
 	$i++;
-	printf("<tr><td align=\"right\">%d</td><td><a href=\"player.php?year=$year&id=%d\">%s</a></td><td align=\"right\">%d</td><td align=\"right\">%d</td><td align=\"right\">%0.2f</td><td align=\"right\">%0.2f<td></tr>\n", $i, $row[0], $row[1], $row[2], $row[3], $row[4], $row[5]);
+	printf("<tr><td align=\"right\">%d</td><td><a href=\"player.php?year=$year&id=%d\">%s</a></td><td align=\"right\">%d</td><td align=\"right\">%d</td><td align=\"right\">%0.2f</td><td align=\"right\">%0.2f</td></tr>\n", $i, $row[0], $row[1], $row[2], $row[3], $row[4], $row[5]);
 	if($i == 32) {
-		print("<tr><td colspan=\"6\"><hr>\n");
+		print("<tr><td colspan=\"6\"><hr></td></tr>\n");
 	}
 }
 print("</table>\n");
