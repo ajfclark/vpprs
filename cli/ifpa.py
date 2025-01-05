@@ -22,13 +22,17 @@ def getCalendar(apikey, country):
 
 def getTournamentResults(apikey, tournamentId):
     params = { 'api_key': apikey }
-    url = 'https://api.ifpapinball.com/v1/tournament/' + tournamentId + '/results'
+    url = 'https://api.ifpapinball.com/v1/tournament/' + str(tournamentId) + '/results'
 
     r = requests.get(url, params=params)
     if r.status_code != 200:
         r.raise_for_status()
 
-    return r.json()['tournament']
+    data = r.json()['tournament']
+    if data['tournament_id'] != tournamentId:
+        return None
+    else:
+        return data
 
 def searchPlayer(apikey, name):
     params = { 'api_key': apikey, 'q': name }
