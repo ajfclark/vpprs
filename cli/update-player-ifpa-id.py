@@ -11,16 +11,19 @@ import vppr
 
 parser = argparse.ArgumentParser(description='Script to fetch tournament', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-d', '--debug', action='store_true')
-parser.add_argument('-c', '--config', default='config.ini')
+parser.add_argument('-c', '--config', default='../config.ini')
 args = parser.parse_args()
 args = vars(args)
 
 debug = args['debug']
 
-logging.basicConfig(level=logging.INFO)
+if debug:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
 logging.getLogger("urllib3").setLevel(logging.INFO)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('update-player-ifpa-id')
 
 # Read the config
 config = config.readConfig(filename=args['config'])
