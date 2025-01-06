@@ -22,7 +22,7 @@ if(isset($_GET['id'])) {
 	printf("<h3>%s</h3>\n", $row[0]);
 	print("<table>\n");
 	printf("<tr><td>VFPA ID</td><td>%d</td></tr>\n", $id);
-	if($row[1] != "") {
+	if($row[1] > 0) {
 		printf("<tr><td>IFPA ID</td><td><a href=\"https://www.ifpapinball.com/player.php?p=%s\" target=\"_blank\">%s</a></td></tr>\n",
 			$row[1], $row[1]);
 	}
@@ -60,10 +60,12 @@ order by name;");
 	while($row = pg_fetch_row($ret)) {
 		if($row[2]>0)
 			$ifpa='<a href="http://ifpapinball.com/player.php?p=' . $row[2] . '" target="_blank">ifpa</a>';
+		else if($row[2]<0)
+			$ifpa='unknown';
 		else
-			$ifpa='';
+			$ifpa='invalid';
 
-		printf("<tr><td><a href=\"player.php?id=%d&year=$year\">%s</a></td><td>%s</td></tr>\n", $row[0], $row[1], $ifpa);
+		printf("<tr><td>%d</td><td><a href=\"player.php?id=%d&year=$year\">%s</a></td><td>%s</td></tr>\n", $row[0],$row[0], $row[1], $ifpa);
 	}
 	print("</table>\n");
 }
