@@ -1,7 +1,7 @@
 <?php
 $title = 'Standings';
 include "header.php";
-include "config.php";
+include "../config.php";
 
 $db = pg_connect($dbConnect);
 if(!$db) {

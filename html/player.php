@@ -1,7 +1,7 @@
 <?php
 $title = "Player List";
 include "header.php";
-include "config.php";
+include "../config.php";
 
 $db = pg_connect($dbConnect);
 if(!$db) {
@@ -20,11 +20,11 @@ if(isset($_GET['id'])) {
 
 	$row = pg_fetch_row($ret);
 	printf("<h3>%s</h3>\n", $row[0]);
-	print("<table>\n");
-	printf("<tr><td>VFPA ID</td><td>%d</td></tr>\n", $id);
-	if($row[1] != "") {
+	if($row[1] > 0) {
+		print("<table>\n");
 		printf("<tr><td>IFPA ID</td><td><a href=\"https://www.ifpapinball.com/player.php?p=%s\" target=\"_blank\">%s</a></td></tr>\n",
 			$row[1], $row[1]);
+		print("</table>\n");
 	}
 
 	$ret = pg_query($db, "select e.date, e.id, e.name, r.place, vppr(r.place, x.players), e.ignored from result r join event e on (r.event_id = e.id) join event_ext x on (r.event_id = x.id) where player_id=$id AND x.year=$year AND e.ignored is False order by vppr desc, date desc;");
@@ -57,11 +57,14 @@ order by name;");
 	}
 
 	print("<table>\n");
+	print("<tr><th>Name</th><th>IFPA ID</th></tr>\n");
 	while($row = pg_fetch_row($ret)) {
 		if($row[2]>0)
-			$ifpa='<a href="http://ifpapinball.com/player.php?p=' . $row[2] . '" target="_blank">ifpa</a>';
+			$ifpa='<a href="http://ifpapinball.com/player.php?p=' . $row[2] . '" target="_blank">' . $row[2] . '</a>';
+		else if($row[2]<0)
+			$ifpa='unknown';
 		else
-			$ifpa='';
+			$ifpa='invalid';
 
 		printf("<tr><td><a href=\"player.php?id=%d&year=$year\">%s</a></td><td>%s</td></tr>\n", $row[0], $row[1], $ifpa);
 	}
