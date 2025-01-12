@@ -3,23 +3,23 @@
 import requests
 import logging
 
-def getCalendar(apikey, country):
-    # Get the calendar of past events
-    params = { 'api_key': apikey, 'country': country }
-    url = 'https://api.ifpapinball.com/v1/calendar/history'
-    r = requests.get(url, params=params)
+def searchTournaments(apikey, country, state, year):
+    params = { 'country': country, 'stateprov': state, 'start_date': str(year) + '-01-01', 'end_date': str(year) + '-12-31'}
+    headers = { 'X-API-Key': apikey, 'accept': 'application/json' }
+    url = 'https://api.ifpapinball.com/tournament/search'
+    r = requests.get(url, params=params, headers=headers)
     if r.status_code != 200:
         r.raise_for_status()
 
     try:
         json = r.json()
-        calendar = json['calendar']
+        tournaments = json['tournaments']
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         print(f"{r=}")
         raise
 
-    return calendar
+    return tournaments
 
 def getTournamentResults(apikey, tournamentId):
     logger=logging.getLogger('ifpa')
