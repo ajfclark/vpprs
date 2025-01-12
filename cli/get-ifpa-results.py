@@ -77,7 +77,7 @@ if(args['tournamentid']):
 else:
     # or load the list of events with no results from the DB
     logger.debug('Get tournemnet IDs without results')
-    cursor.execute('select e.ifpa_id from event e where e.id not in (select distinct event_id from result);')
+    cursor.execute('select e.ifpa_id from event e where e.id not in (select distinct event_id from result) and e.date < current_date;')
     tournamentIds = [ tournamentId for row in cursor for tournamentId in row ]
 
 # For each tournament to update
@@ -122,11 +122,11 @@ for tournamentId in tournamentIds:
         logging.debug(obj)
     cursor.executemany("INSERT INTO result(event_id, place, player_id) VALUES (%s, %s, %s);", sqlData)
 
-    if(not debug):
-        conn.commit()
-    else:
-        logging.debug('Debug enabled, rolling back')
-        conn.rollback()
+if(not debug):
+    conn.commit()
+else:
+    logging.debug('Debug enabled, rolling back')
+    conn.rollback()
 
 # Close the database
 logger.debug('Closing database')
