@@ -44,7 +44,7 @@ Where r.event_id = $id order by place, p.name asc;");
 else {
 	$title = "Event List";
 	include "header.php";
-	$ret = pg_query($db, "select id, date, name, ifpa_id, matchplay_q_id, matchplay_f_id from event where date >= '$year-01-01' and date <= '$year-12-31' and ignored=False order by date desc;");
+	$ret = pg_query($db, "select id, date, name, ifpa_id, matchplay_q_id, matchplay_f_id from event where date_part('year', date) = '$year' and ignored=False and id in (SELECT distinct event_id from result) order by date desc;");
 	if(!$ret) {
 		echo pg_last_error($db);
 		exit;
