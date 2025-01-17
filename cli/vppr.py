@@ -20,8 +20,19 @@ def getPlayerId(cursor, name: str) -> int:
 
     return playerId
 
-def addPlayer(cursor, name: str) -> int:
-    name = name.strip().replace("'", "")
-    cursor.execute("INSERT INTO player(name) VALUES ('%s') RETURNING id;" % name)
+def getPlayerId(cursor, ifpaId: int) -> int:
+    cursor.execute("SELECT id FROM player WHERE ifpa_id='" + str(ifpaId) + "';")
+
+    temp = cursor.fetchone()
+    if temp != None:
+        playerId = list(temp)[0]
+    else:
+        playerId = None
+
+    return playerId
+
+def addPlayer(cursor, name: str, ifpaId: int) -> int:
+    cursor.execute("INSERT INTO player(name, ifpa_id) VALUES ('%s','%s') RETURNING id;" % (name.strip(), ifpaId))
+
     return int(cursor.fetchone()[0])
 
