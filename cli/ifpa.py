@@ -32,13 +32,14 @@ def getTournamentResults(apikey, tournamentId):
         r.raise_for_status()
 
     data = r.json()['tournament']
-    if data['tournament_id'] == str(tournamentId):
-        return data
-
     logger.debug(type(tournamentId));
     logger.debug(type(data['tournament_id']));
     logger.debug('"' + str(tournamentId) + '"');
-    logger.debug('"' + str(data['tournament_id']) + '"');
+    logger.debug('"' + str(data) + '"');
+
+    if data['tournament_id'] == str(tournamentId):
+        return data
+
     return None
 
 def searchPlayer(apikey, name):

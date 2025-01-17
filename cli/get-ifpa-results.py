@@ -55,7 +55,7 @@ if debug:
 else:
     logging.basicConfig(level=logging.INFO)
 
-logger=logging.getLogger('get-results')
+logger=logging.getLogger('get-ifpa-results')
 
 # Read the config
 config = config.readConfig(filename=args['config'])
@@ -108,7 +108,7 @@ for tournamentId in tournamentIds:
             logger.debug('Adding new player' + playerName)
             vpprId = vppr.addPlayer(cursor, playerName, ifpaId)
         obj = { 'placing': player['placing'], 'name': player['name'], 'ifpa_id': player['ifpa_id'], 'vppr_id': vpprId }
-        logging.debug(obj)
+        logger.debug(obj)
         data.append(obj)
 
     # Update the database
@@ -119,13 +119,13 @@ for tournamentId in tournamentIds:
     for player in data:
         obj = [eventId,player['placing'],player['vppr_id']]
         sqlData.append(obj)
-        logging.debug(obj)
+        logger.debug(obj)
     cursor.executemany("INSERT INTO result(event_id, place, player_id) VALUES (%s, %s, %s);", sqlData)
 
 if(not debug):
     conn.commit()
 else:
-    logging.debug('Debug enabled, rolling back')
+    logger.debug('Debug enabled, rolling back')
     conn.rollback()
 
 # Close the database
