@@ -3,21 +3,32 @@
 import requests
 import logging
 
-def searchTournaments(apikey, country, state, year):
-    params = { 'country': country, 'stateprov': state, 'start_date': str(year) + '-01-01', 'end_date': str(year) + '-12-31'}
+def searchTournaments(apikey, country, state, year, total=50, start_pos=1):
+    params = {
+            'country': country,
+            'stateprov': state,
+            'start_date': str(year) + '-01-01',
+            'end_date': str(year) + '-12-31',
+            'total': total,
+            'start_pos': start_pos
+        }
     headers = { 'X-API-Key': apikey, 'accept': 'application/json' }
     url = 'https://api.ifpapinball.com/tournament/search'
     r = requests.get(url, params=params, headers=headers)
     if r.status_code != 200:
         r.raise_for_status()
 
+    this_page = r.json()
     try:
-        json = r.json()
-        tournaments = json['tournaments']
+        tournaments = this_page['tournaments']
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         print(f"{r=}")
         raise
+
+    if int(this_page['total_results']) >= start_pos + total:
+        next_page = searchTournaments(apikey, country, state, year, total, start_pos=start_pos + total)
+        tournaments = [*tournaments, *next_page]
 
     return tournaments
 
