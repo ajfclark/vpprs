@@ -3,10 +3,11 @@
 import requests
 import logging
 
-def searchTournaments(apikey, country, state, year, total=50, start_pos=1):
+def searchTournaments(apikey, country, state, year, rank_type='MAIN', total=50, start_pos=1):
     params = {
             'country': country,
             'stateprov': state,
+            'rank_type': rank_type,
             'start_date': str(year) + '-01-01',
             'end_date': str(year) + '-12-31',
             'total': total,
@@ -27,7 +28,7 @@ def searchTournaments(apikey, country, state, year, total=50, start_pos=1):
         raise
 
     if int(this_page['total_results']) >= start_pos + total:
-        next_page = searchTournaments(apikey, country, state, year, total, start_pos=start_pos + total)
+        next_page = searchTournaments(apikey=apikey, country=country, state=state, year=year, rank_type=rank_type, total=total, start_pos=start_pos + total)
         tournaments = [*tournaments, *next_page]
 
     return tournaments
